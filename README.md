@@ -1,108 +1,87 @@
-# High-Precision PDF Drawing Comparator - Usage Guide
+# PDF Comparison System - Modular Structure
 
-## Installation
+## Overview
+This project compares two multi-page PDF files at high resolution (300 DPI), aligns them geometrically using SIFT feature matching, and generates difference heatmaps.
 
-1. **Install dependencies:**
-```bash
-pip install -r requirements.txt
+## Project Structure
+
+```
+IMG_diff/
+├── main.py                 # Entry point and orchestration
+├── config.py              # Configuration parameters
+├── pdf_converter.py       # PDF to image conversion
+├── image_processor.py     # Image preprocessing and alignment
+├── comparator.py          # Difference computation and heatmap generation
+├── report_generator.py    # Report generation utilities
+├── input/                 # Place PDF files here
+└── output/                # Generated heatmaps and reports
 ```
 
+## Module Descriptions
+
+### `config.py`
+Contains all configuration parameters:
+- Default DPI, input/output directories
+- Image processing parameters (blur kernels, etc.)
+- Alignment parameters (SIFT settings, thresholds)
+- Heatmap visualization settings
+
+### `pdf_converter.py`
+Handles PDF to image conversion:
+- `pdf_to_images()` - Converts PDF pages to high-res numpy arrays
+- `calculate_zoom_from_dpi()` - Calculates zoom factor from DPI
+
+### `image_processor.py`
+Image preprocessing and alignment:
+- `preprocess_image()` - Converts to grayscale and applies noise reduction
+- `align_images()` - SIFT-based feature matching and homography alignment
+
+### `comparator.py`
+Difference computation and visualization:
+- `compute_difference()` - Calculates SSIM score and difference map
+- `generate_heatmap()` - Creates color-coded heatmap overlay
+
+### `report_generator.py`
+Report generation:
+- `generate_report()` - Creates text summary with SSIM statistics
+
+### `main.py`
+Orchestration and CLI:
+- `compare_pdfs()` - Main comparison pipeline
+- `main()` - Entry point with file discovery and execution
+
 ## Usage
-
-### Simple Command
-
-Just place your PDF files in the `input/` folder and run:
 
 ```bash
 python main.py
 ```
 
-The tool will automatically:
-- Find all PDF files in `D:\DownloadD\Stanley\FS\IMG_diff\input`
-- Compare the first two PDFs (sorted alphabetically)
-- Save results to `output/` folder
+The script will:
+1. Look for PDF files in the `input/` directory
+2. Compare the first two PDFs (alphabetically sorted)
+3. Generate heatmaps in the `output/` directory
+4. Create a comparison report
 
-### Configuration
+## Customization
 
-To change settings, edit the configuration in `main.py`:
+To modify parameters, edit `config.py`:
 
 ```python
-input_dir = r"D:\DownloadD\Stanley\FS\IMG_diff\input"  # Input folder
-output_dir = "output"  # Output folder
-dpi = 300  # Rendering DPI
+# Change DPI
+DEFAULT_DPI = 600
+
+# Adjust heatmap sensitivity
+DIFF_THRESHOLD = 20
+
+# Modify alignment quality
+LOWE_RATIO = 0.8
 ```
 
-## Output
+## Dependencies
 
-The tool generates:
+- OpenCV (cv2)
+- PyMuPDF (fitz)
+- NumPy
+- scikit-image
+- tqdm
 
-1. **Heatmap images**: `comparison_page_1.jpg`, `comparison_page_2.jpg`, etc.
-   - Red areas = High differences
-   - Blue areas = No differences
-   - Blended with original reference for context
-
-2. **Text report**: `comparison_report.txt`
-   - SSIM score for each page
-   - Average, minimum, and maximum SSIM scores
-   - Page numbers with most/least differences
-
-## How It Works
-
-1. **High-DPI Rendering**: Converts each PDF page to 300 DPI images (4x standard resolution)
-2. **Preprocessing**: Converts to grayscale and applies Gaussian blur to reduce rendering noise
-3. **Alignment**: Uses SIFT feature detection to align target with reference
-   - Optimized: Calculates alignment on 50% scaled images, applies to full resolution
-4. **Difference Detection**: Computes SSIM (Structural Similarity Index) and pixel-wise differences
-5. **Heatmap Generation**: Creates JET colormap overlay showing differences
-6. **Multi-page Processing**: Processes all pages with progress bar
-
-## Example Workflow
-
-1. Place your PDFs in the `input/` folder:
-   ```
-   D:\DownloadD\Stanley\FS\IMG_diff\input\
-   ├── drawing_v1.pdf
-   └── drawing_v2.pdf
-   ```
-
-2. Run comparison:
-   ```bash
-   python main.py
-   ```
-
-3. Check results in `output/` folder:
-   ```
-   output/
-   ├── comparison_page_1.jpg
-   ├── comparison_page_2.jpg
-   ├── ...
-   └── comparison_report.txt
-   ```
-
-**Note**: The tool compares the first two PDFs alphabetically. If you have more than 2 PDFs, it will use the first two.
-
-## Tips
-
-- **Higher DPI**: Edit `dpi = 300` to `dpi = 400` or `dpi = 600` in `main.py` for finer detail detection (slower)
-- **Memory Issues**: If processing very large drawings (A0 size), reduce DPI to 200-250 in `main.py`
-- **File Order**: PDFs are compared alphabetically. Name them like `1_reference.pdf` and `2_target.pdf` to control order
-- **Alignment Quality**: The tool reports number of SIFT matches per page - more matches = better alignment
-- **SSIM Interpretation**: 
-  - 1.0 = Identical
-  - 0.95-0.99 = Very similar (minor differences)
-  - 0.80-0.95 = Moderate differences
-  - <0.80 = Significant differences
-
-## Troubleshooting
-
-**"Not enough keypoints detected"**
-- PDFs may be too different to align
-- Try reducing DPI or check if pages are completely blank
-
-**"Alignment failed"**
-- Images may have insufficient features (e.g., mostly blank pages)
-- Tool will still generate difference map without alignment
-
-**Memory errors**
-- Reduce DPI: `--dpi 200`
-- Process fewer pages at once (split PDFs)
